@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>English Study | Weekly Partners</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 14px; background: #fff; color: #242424;
+           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .widget { width: 100%; max-width: 900px; margin: auto; border: 1px solid #e8e8e8;
+              border-radius: 16px; padding: 20px; background: #fff; }
+    header { display: flex; align-items: flex-start; justify-content: space-between;
+             gap: 12px; flex-wrap: wrap; }
+    h1 { margin: 0 0 5px; font-size: 21px; letter-spacing: -.4px; }
+    .subtitle { margin: 0; color: #747474; font-size: 13px; }
+    .tag { background: #eff7f2; color: #397357; padding: 7px 10px; font-size: 12px;
+           border-radius: 999px; white-space: nowrap; }
+    .date { margin-top: 20px; padding: 13px 15px; border-radius: 11px;
+            background: #f7f7f5; display: flex; justify-content: space-between;
+            align-items: center; gap: 8px; flex-wrap: wrap; }
+    .date strong { font-size: 16px; }
+    .date span { font-size: 12px; color: #777; }
+    .rounds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 14px; margin-top: 15px; }
+    .round { border: 1px solid #e7e7e7; border-radius: 12px; padding: 14px; }
+    .round h2 { margin: 0 0 12px; font-size: 14px; }
+    .room { display: flex; justify-content: space-between; gap: 10px;
+            padding: 10px 0; border-top: 1px solid #eee; align-items: center; }
+    .room .room-name { color: #888; font-size: 12px; white-space: nowrap; }
+    .room .people { font-size: 13px; font-weight: 600; text-align: right; }
+    footer { margin-top: 14px; color: #858585; font-size: 11px; text-align: right; }
+    @media (max-width: 580px) {
+      body { padding: 6px; } .widget { padding: 14px; }
+      .rounds { grid-template-columns: 1fr; } h1 { font-size: 19px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="widget">
+    <header>
+      <div>
+        <h1>🤝 Weekly Partners</h1>
+        <p class="subtitle">토요일 아웃풋 스터디 · 6명 · 1:1 두 번</p>
+      </div>
+      <span class="tag">매주 일요일 자동 변경</span>
+    </header>
+    <div class="date">
+      <strong id="study-date">날짜 계산 중...</strong>
+      <span id="week-label"></span>
+    </div>
+    <section class="rounds" id="rounds" aria-label="짝꿍 및 방 배정"></section>
+    <footer>한국 시간 기준 · 일요일 00:00 이후 다음 토요일 일정 표시</footer>
+  </main>
+
+  <script>
+    // ★ 변경할 부분 1: Week 1에 해당하는 첫 토요일 (YYYY-MM-DD)
+    const FIRST_SATURDAY = "2026-11-14";
+
+    // ★ 변경할 부분 2: 매주 방별 짝꿍. 순서대로 1번, 2번, 3번 방.
+    // 5주치 배정을 넣었으며 6주차부터 같은 순서로 반복합니다.
+    // 한 주의 첫 배열이 Round 1, 둘째 배열이 Round 2입니다.
+    const SCHEDULE = [
+      [ // Week 1
+        [["Soo", "Joanna"], ["Ella", "Sadie"], ["Jiyoung", "Mina"]],
+        [["Soo", "Sadie"], ["Joanna", "Mina"], ["Ella", "Jiyoung"]]
+      ],
+      [ // Week 2
+        [["Soo", "Mina"], ["Sadie", "Jiyoung"], ["Joanna", "Ella"]],
+        [["Soo", "Jiyoung"], ["Mina", "Ella"], ["Sadie", "Joanna"]]
+      ],
+      [ // Week 3
+        [["Soo", "Ella"], ["Jiyoung", "Joanna"], ["Mina", "Sadie"]],
+        [["Soo", "Joanna"], ["Ella", "Sadie"], ["Jiyoung", "Mina"]]
+      ],
+      [ // Week 4
+        [["Soo", "Sadie"], ["Joanna", "Mina"], ["Ella", "Jiyoung"]],
+        [["Soo", "Mina"], ["Sadie", "Jiyoung"], ["Joanna", "Ella"]]
+      ],
+      [ // Week 5
+        [["Soo", "Jiyoung"], ["Mina", "Ella"], ["Sadie", "Joanna"]],
+        [["Soo", "Ella"], ["Jiyoung", "Joanna"], ["Mina", "Sadie"]]
+      ]
+    ];
+
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    // 접속한 사람이 해외에 있어도 한국 기준 날짜를 가져옵니다.
+    function koreaTodayUTC() {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit"
+      }).formatToParts(new Date());
+      const get = (type) => Number(parts.find(p => p.type === type).value);
+      return Date.UTC(get("year"), get("month") - 1, get("day"));
+    }
+
+    function getTargetSaturday() {
+      const today = koreaTodayUTC();
+      const day = new Date(today).getUTCDay(); // 0=일, 6=토
+      const untilSaturday = (6 - day + 7) % 7;
+      return today + untilSaturday * DAY_MS;
+    }
+
+    function render() {
+      const first = Date.parse(FIRST_SATURDAY + "T00:00:00Z");
+      if (!Number.isFinite(first) || new Date(first).getUTCDay() !== 6) {
+        document.getElementById("study-date").textContent = "FIRST_SATURDAY에 토요일 날짜를 넣어주세요.";
+        return;
+      }
+      const target = Math.max(first, getTargetSaturday());
+      const weekNumber = Math.floor((target - first) / (7 * DAY_MS)) + 1;
+      const chosen = SCHEDULE[(weekNumber - 1) % SCHEDULE.length];
+
+      const dateLabel = new Intl.DateTimeFormat("ko-KR", {
+        timeZone: "UTC", year: "numeric", month: "long", day: "numeric", weekday: "short"
+      }).format(new Date(target));
+      document.getElementById("study-date").textContent = "📅 " + dateLabel;
+      document.getElementById("week-label").textContent = "Week " + weekNumber;
+
+      document.getElementById("rounds").innerHTML = chosen.map((pairs, roundIndex) => `
+        <article class="round">
+          <h2>Round ${roundIndex + 1}</h2>
+          ${pairs.map((pair, roomIndex) => `
+            <div class="room">
+              <span class="room-name">Room ${roomIndex + 1}</span>
+              <span class="people">${pair[0]} × ${pair[1]}</span>
+            </div>
+          `).join("")}
+        </article>
+      `).join("");
+    }
+
+    render();
+    setInterval(render, 10000); // 열어둔 상태여도 일요일에 자동 갱신
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) render();
+    });
+  </script>
+</body>
+</html>
