@@ -5,52 +5,93 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>English Study | Weekly Partners</title>
   <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 14px; background: #fff; color: #242424;
-           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    .widget { width: 100%; max-width: 900px; margin: auto; border: 1px solid #e8e8e8;
-              border-radius: 16px; padding: 20px; background: #fff; }
-    header { display: flex; align-items: flex-start; justify-content: space-between;
-             gap: 12px; flex-wrap: wrap; }
-    h1 { margin: 0 0 5px; font-size: 21px; letter-spacing: -.4px; }
-    .subtitle { margin: 0; color: #747474; font-size: 13px; }
-    .tag { background: #eff7f2; color: #397357; padding: 7px 10px; font-size: 12px;
-           border-radius: 999px; white-space: nowrap; }
-    .date { margin-top: 20px; padding: 13px 15px; border-radius: 11px;
-            background: #f7f7f5; display: flex; justify-content: space-between;
-            align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* 노션 Embed 안의 HTML 자체에는 외곽선/바깥 여백/그림자가 전혀 없습니다. */
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100%;
+      border: 0 !important;
+      outline: 0 !important;
+      box-shadow: none !important;
+      background: transparent !important;
+      color: #242424;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main.widget {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 0;
+      border: 0 !important;
+      border-radius: 0 !important;
+      outline: none;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+    /* 날짜도 카드처럼 둘러싸지 않고 텍스트로만 표시 */
+    .date {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 15px;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      background: transparent;
+    }
     .date strong { font-size: 16px; }
     .date span { font-size: 12px; color: #777; }
-    .rounds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-              gap: 14px; margin-top: 15px; }
-    .round { border: 1px solid #e7e7e7; border-radius: 12px; padding: 14px; }
-    .round h2 { margin: 0 0 12px; font-size: 14px; }
-    .room { display: flex; justify-content: space-between; gap: 10px;
-            padding: 10px 0; border-top: 1px solid #eee; align-items: center; }
-    .room .room-name { color: #888; font-size: 12px; white-space: nowrap; }
-    .room .people { font-size: 13px; font-weight: 600; text-align: right; }
-    footer { margin-top: 14px; color: #858585; font-size: 11px; text-align: right; }
+    .rounds {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+    /* 핵심: Round 1/2를 감싸던 둥근 네모 테두리도 제거 */
+    .round {
+      margin: 0;
+      padding: 0;
+      border: 0 !important;
+      border-radius: 0 !important;
+      outline: none;
+      box-shadow: none !important;
+      background: transparent !important;
+      min-width: 0;
+    }
+    .round h2 { margin: 0 0 10px; padding: 0; font-size: 14px; }
+    /* 방 사이의 얇은 구분선만 유지: 외곽 테두리가 아님 */
+    .room {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 0;
+      margin: 0;
+      border: 0;
+      border-top: 1px solid #ececec;
+      background: transparent;
+    }
+    .room-name { color: #777; font-size: 12px; white-space: nowrap; }
+    .people { font-size: 13px; font-weight: 600; text-align: right; }
     @media (max-width: 580px) {
-      body { padding: 6px; } .widget { padding: 14px; }
-      .rounds { grid-template-columns: 1fr; } h1 { font-size: 19px; }
+      .rounds { grid-template-columns: 1fr; gap: 18px; }
     }
   </style>
 </head>
 <body>
   <main class="widget">
-    <header>
-      <div>
-        <h1>🤝 Weekly Partners</h1>
-        <p class="subtitle">토요일 아웃풋 스터디 · 6명 · 1:1 두 번</p>
-      </div>
-      <span class="tag">매주 일요일 자동 변경</span>
-    </header>
     <div class="date">
       <strong id="study-date">날짜 계산 중...</strong>
       <span id="week-label"></span>
     </div>
     <section class="rounds" id="rounds" aria-label="짝꿍 및 방 배정"></section>
-    <footer>한국 시간 기준 · 일요일 00:00 이후 다음 토요일 일정 표시</footer>
   </main>
 
   <script>
@@ -82,6 +123,10 @@
         [["Soo", "Ella"], ["Jiyoung", "Joanna"], ["Mina", "Sadie"]]
       ]
     ];
+
+    // 화면에 표시할 회차명과 방 이름
+    const ROUND_NAMES = ["본문 툭튀툭", "LHT"];
+    const ROOM_NAMES = ["🥥 coconut", "🥖 baguete", "🥟 mandu"];
 
     const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -119,11 +164,11 @@
 
       document.getElementById("rounds").innerHTML = chosen.map((pairs, roundIndex) => `
         <article class="round">
-          <h2>Round ${roundIndex + 1}</h2>
+          <h2>${ROUND_NAMES[roundIndex]}</h2>
           ${pairs.map((pair, roomIndex) => `
             <div class="room">
-              <span class="room-name">Room ${roomIndex + 1}</span>
-              <span class="people">${pair[0]} × ${pair[1]}</span>
+              <span class="room-name">${ROOM_NAMES[roomIndex]}</span>
+              <span class="people">${pair[0]} , ${pair[1]}</span>
             </div>
           `).join("")}
         </article>
